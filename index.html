@@ -1,0 +1,746 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#d3ecd8">
+  <title>캠핑 품목 체크리스트</title>
+  <style>
+:root {
+  --bg: #d3ecd8;
+  --panel: #ffffff;
+  --fg: #1d2a22;
+  --muted: #6b7a70;
+  --line: #a9d1b2;
+  --accent: #2f6f4f;
+  --crit: #d64545;
+  --radius: 14px;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #10261a;
+    --panel: #19201b;
+    --fg: #e8eee9;
+    --muted: #8fa095;
+    --line: #2a4a38;
+    --accent: #5fb88a;
+    --crit: #ff7a7a;
+  }
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", sans-serif;
+  font-size: 15px;
+  line-height: 1.4;
+}
+/* 휴대폰 화면 크기: 최대 430px, 데스크톱에서도 가운데 한 칸으로 표시 */
+.app {
+  max-width: 430px;
+  min-height: 100vh;
+  margin: 0 auto;
+  padding: 16px 14px calc(24px + env(safe-area-inset-bottom));
+  background: var(--bg);
+}
+@media (min-width: 480px) {
+  body { padding: 24px 0; }
+  .app { min-height: calc(100vh - 48px); border-radius: 28px; box-shadow: 0 8px 40px rgba(0, 0, 0, 0.18); border: 1px solid var(--line); }
+}
+
+h1 { margin: 0 0 4px; font-size: 22px; font-weight: 700; }
+.lead { margin: 0 0 12px; color: var(--muted); font-size: 14px; min-height: 1.4em; }
+.lead b { color: var(--fg); }
+
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.stat { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 12px; }
+.stat .lbl { display: block; color: var(--muted); font-size: 12px; }
+.stat b { font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.bar { height: 8px; background: var(--line); border-radius: 99px; overflow: hidden; margin: 10px 0 14px; }
+.bar i { display: block; height: 100%; width: 0; background: var(--accent); border-radius: 99px; transition: width 0.25s; }
+
+.tools { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+.chips { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+button { font: inherit; color: var(--fg); }
+.chips button, .resets button {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 9px 6px;
+  font-size: 14px;
+  cursor: pointer;
+}
+.chips button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+.resets { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.resets button { font-size: 13px; color: var(--muted); }
+input[type="search"], input[type="text"], input[type="number"] {
+  font: inherit;
+  font-size: 16px; /* iOS 자동 확대 방지 */
+  color: var(--fg);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 9px 10px;
+  min-width: 0;
+}
+#q { width: 100%; }
+
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); margin-bottom: 12px; overflow: hidden; }
+.card > summary { list-style: none; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 13px 14px; cursor: pointer; font-weight: 700; font-size: 16px; }
+.card > summary::-webkit-details-marker { display: none; }
+.card > summary::after { content: "▾"; color: var(--muted); margin-left: 4px; transition: transform 0.2s; }
+.card:not([open]) > summary::after { transform: rotate(-90deg); }
+.card .cnt { margin-left: auto; color: var(--muted); font-size: 13px; font-weight: 400; font-variant-numeric: tabular-nums; }
+.card .cbar { height: 4px; background: var(--line); }
+.card .cbar i { display: block; height: 100%; background: var(--accent); width: 0; }
+
+ul { list-style: none; margin: 0; padding: 0 14px; }
+li {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 12rem) 38px 62px;
+  justify-content: start;
+  align-items: center;
+  column-gap: 8px;
+  padding: 10px 0;
+  border-top: 1px solid var(--line);
+}
+@media (max-width: 400px) {
+  li { grid-template-columns: 22px minmax(0, 1fr) 32px 54px; column-gap: 6px; }
+  li .have { width: 54px; }
+  .nm .tx { font-size: 14px; }
+  .qty { font-size: 12px; }
+}
+li.head { border-top: 0; padding: 8px 0 2px; color: var(--muted); font-size: 12px; }
+li input[type="checkbox"] { width: 22px; height: 22px; margin: 0; accent-color: var(--accent); }
+.nm { min-width: 0; }
+.nm .tx { display: inline-block; max-width: calc(100% - 16px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: middle; }
+.nm .note { display: block; color: var(--muted); font-size: 12px; }
+.nm .rm { margin-left: 6px; background: none; border: 1px solid var(--line); border-radius: 8px; color: var(--muted); font-size: 11px; padding: 1px 6px; cursor: pointer; }
+li.done .tx { text-decoration: line-through; color: var(--muted); }
+.qty { color: var(--muted); font-size: 13px; text-align: center; font-variant-numeric: tabular-nums; }
+li .have { width: 62px; padding: 6px 6px; text-align: center; font-variant-numeric: tabular-nums; }
+
+.dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; background: var(--muted); vertical-align: middle; }
+.dot.req { background: var(--crit); }
+
+.addrow { display: grid; grid-template-columns: 1fr 58px auto; gap: 6px; padding: 10px 14px 14px; border-top: 1px solid var(--line); }
+.addrow input { padding: 8px 10px; }
+.addrow .aq { text-align: center; }
+.addrow button { background: var(--accent); border: 0; color: #fff; border-radius: 10px; padding: 0 14px; font-size: 14px; cursor: pointer; }
+
+.empty { color: var(--muted); text-align: center; padding: 24px 0; }
+.foot { color: var(--muted); font-size: 12px; text-align: center; margin: 8px 0 0; }
+.report { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; margin: 4px 0 12px; }
+.report h2 { margin: 0 0 6px; font-size: 16px; }
+.report p { margin: 0 0 10px; color: var(--muted); font-size: 13px; }
+.report button { width: 100%; background: var(--accent); border: 0; color: #fff; border-radius: 10px; padding: 12px; font-size: 15px; font-weight: 700; cursor: pointer; }
+.report .status { margin: 10px 0 0; min-height: 1.3em; }
+.report .dl-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.report .dl-list li { display: block; border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; background: var(--bg); }
+.report .dl-list .fn { display: block; font-weight: 700; font-size: 14px; color: var(--fg); word-break: break-all; }
+.report .dl-list .meta { display: block; color: var(--muted); font-size: 12px; margin: 2px 0 8px; }
+.report .dl-list a { display: inline-block; color: var(--accent); font-size: 13px; font-weight: 700; text-decoration: none; border: 1px solid var(--accent); border-radius: 8px; padding: 5px 10px; }
+.report .pv-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 12px; }
+.report .pv-head[hidden] { display: none; }
+.report .pv-head span { font-weight: 700; font-size: 14px; color: var(--fg); }
+.report .pv-head button { width: auto; background: var(--panel); color: var(--crit); border: 1px solid var(--line); border-radius: 8px; padding: 6px 12px; font-size: 13px; font-weight: 700; }
+.report .preview { margin-top: 8px; overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; }
+.report .preview table { border-collapse: collapse; width: 100%; font-size: 12px; font-variant-numeric: tabular-nums; }
+.report .preview th, .report .preview td { padding: 6px 8px; border-bottom: 1px solid var(--line); text-align: left; white-space: nowrap; color: var(--fg); }
+.report .preview th { background: var(--accent); color: #fff; }
+.report .preview caption { text-align: left; padding: 8px; font-weight: 700; font-size: 13px; }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header class="top">
+      <h1>캠핑 품목 체크리스트</h1>
+      <p class="lead" id="lead"></p>
+      <div class="stats">
+        <div class="stat"><span class="lbl">전체</span><b id="s-total">0</b></div>
+        <div class="stat"><span class="lbl">필수</span><b id="s-ess">0</b></div>
+        <div class="stat"><span class="lbl">챙김</span><b id="s-done">0</b></div>
+      </div>
+      <div class="bar" aria-hidden="true"><i id="bar"></i></div>
+    </header>
+
+    <section class="tools">
+      <div class="chips" role="group" aria-label="우선순위 필터">
+        <button type="button" data-f="all" aria-pressed="true">전체</button>
+        <button type="button" data-f="필수" aria-pressed="false">필수</button>
+        <button type="button" data-f="권장" aria-pressed="false">권장</button>
+        <button type="button" data-f="선택" aria-pressed="false">선택</button>
+      </div>
+      <input type="search" id="q" placeholder="품목 검색" aria-label="품목 검색">
+      <div class="resets">
+        <button type="button" id="reset-done">체크 초기화</button>
+        <button type="button" id="reset-own">보유 수량 초기화</button>
+      </div>
+    </section>
+
+    <div id="board"></div>
+
+    <section class="report">
+      <h2>엑셀 보고서</h2>
+      <p>지금까지 집계한 전체·필수·챙긴 품목 수, 카테고리별 현황, 품목 상세(필요·보유·부족 수량)를 엑셀 파일로 저장해요.</p>
+      <button type="button" id="dl-report">엑셀 보고서 내려받기</button>
+      <p class="status" id="report-status" role="status"></p>
+      <ul class="dl-list" id="dl-list" aria-label="내려받은 파일"></ul>
+      <div class="pv-head" id="pv-head" hidden>
+        <span id="pv-title">미리보기</span>
+        <button type="button" id="pv-clear">내용 지우기</button>
+      </div>
+      <div class="preview" id="dl-preview" hidden></div>
+    </section>
+
+    <p class="foot"><i class="dot req"></i>필수 <i class="dot"></i>권장·선택 · 체크와 보유 수량은 이 기기에 저장돼요.</p>
+  </main>
+  <script>
+(function () {
+  'use strict';
+
+  // [카테고리, 품목, 필요 수량, 우선순위, 비고]
+  var DATA = [
+    ['텐트·침구', '텐트(본체+폴)', 1, '필수', '설치 연습 한 번 해보기'],
+    ['텐트·침구', '팩·로프·망치', 1, '필수', '여분 팩 5개'],
+    ['텐트·침구', '그라운드시트(풋프린트)', 1, '권장', '바닥 습기 차단'],
+    ['텐트·침구', '타프', 1, '권장', '비·햇빛 대비'],
+    ['텐트·침구', '침낭', 2, '필수', '밤 기온에 맞는 등급'],
+    ['텐트·침구', '매트(에어/폼)', 2, '필수', '바닥 냉기 차단'],
+    ['텐트·침구', '베개', 2, '권장', ''],
+    ['취사', '버너', 1, '필수', ''],
+    ['취사', '가스(부탄/이소)', 2, '필수', '여분 1개 더'],
+    ['취사', '코펠(냄비 세트)', 1, '필수', ''],
+    ['취사', '프라이팬', 1, '권장', ''],
+    ['취사', '수저·젓가락', 4, '필수', ''],
+    ['취사', '칼·도마·가위', 1, '필수', '칼 커버 챙기기'],
+    ['취사', '집게·국자·뒤집개', 1, '권장', ''],
+    ['취사', '식기(접시·컵)', 4, '필수', ''],
+    ['취사', '키친타월·지퍼백', 1, '권장', ''],
+    ['식음료', '생수', 6, '필수', '2L 기준'],
+    ['식음료', '쌀·라면 등 주식', 1, '필수', ''],
+    ['식음료', '고기·채소', 1, '필수', '아이스박스에 보관'],
+    ['식음료', '양념(소금·기름·고추장)', 1, '권장', '소분해서 챙기기'],
+    ['식음료', '커피·차·간식', 1, '선택', ''],
+    ['식음료', '아이스박스+얼음팩', 1, '필수', ''],
+    ['식음료', '숯·착화제', 1, '권장', '바비큐 시'],
+    ['조명·전기', '랜턴(메인)', 2, '필수', ''],
+    ['조명·전기', '헤드랜턴', 2, '권장', ''],
+    ['조명·전기', '보조배터리', 2, '필수', ''],
+    ['조명·전기', '멀티탭·연장선', 1, '선택', '전기 사이트일 때'],
+    ['조명·전기', '건전지', 1, '권장', '예비용'],
+    ['의류', '보온 겉옷(패딩/플리스)', 2, '필수', '저녁·새벽 대비'],
+    ['의류', '여벌 옷·속옷·양말', 2, '필수', ''],
+    ['의류', '우비·방수 재킷', 2, '권장', ''],
+    ['의류', '모자·장갑', 2, '권장', '늦가을·겨울 필수'],
+    ['의류', '슬리퍼·샌들', 2, '권장', ''],
+    ['안전·위생', '구급약·밴드·소독제', 1, '필수', ''],
+    ['안전·위생', '벌레퇴치제', 1, '권장', ''],
+    ['안전·위생', '소화기·소화 담요', 1, '권장', '화기 사용 시'],
+    ['안전·위생', '일산화탄소 경보기', 1, '필수', '난로·화로 사용 시'],
+    ['안전·위생', '쓰레기봉투', 5, '필수', '분리배출용'],
+    ['안전·위생', '물티슈·휴지', 2, '필수', ''],
+    ['세면', '칫솔·치약', 2, '필수', ''],
+    ['세면', '수건', 2, '필수', ''],
+    ['세면', '세면도구(비누·샴푸)', 1, '권장', ''],
+    ['세면', '선크림', 1, '권장', ''],
+    ['가구·기타', '의자', 2, '필수', ''],
+    ['가구·기타', '테이블', 1, '필수', ''],
+    ['가구·기타', '화로대·장작', 1, '선택', '장작은 현장 구매 가능'],
+    ['가구·기타', '핫팩·전기방석', 1, '권장', '추운 계절'],
+    ['가구·기타', '망치·장갑(작업용)', 1, '권장', ''],
+    ['가구·기타', '카드·보드게임', 1, '선택', ''],
+    ['가구·기타', '예약 확인서·신분증', 1, '필수', '']
+  ].map(function (r) {
+    return { category: r[0], item: r[1], qty: r[2], priority: r[3], note: r[4], extra: false };
+  });
+
+  var KEY = 'camping-checklist-v1';
+  var S = { done: {}, own: {}, extra: [], closed: {}, f: 'all', q: '' };
+
+  try {
+    var saved = JSON.parse(localStorage.getItem(KEY) || 'null');
+    if (saved) {
+      S.done = saved.done || {};
+      S.own = saved.own || {};
+      S.extra = saved.extra || [];
+      S.closed = saved.closed || {};
+    }
+  } catch (e) { /* 저장소를 못 쓰면 그냥 이번 화면에서만 유지 */ }
+
+  function save() {
+    try {
+      localStorage.setItem(KEY, JSON.stringify({ done: S.done, own: S.own, extra: S.extra, closed: S.closed }));
+    } catch (e) { /* 무시 */ }
+  }
+
+  function $(id) { return document.getElementById(id); }
+  function el(tag, cls, text) {
+    var n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (text !== undefined) n.textContent = text;
+    return n;
+  }
+  function allRows() { return DATA.concat(S.extra); }
+
+  function renderSummary() {
+    var rows = allRows();
+    var total = rows.length;
+    var ess = rows.filter(function (r) { return r.priority === '필수'; }).length;
+    var done = rows.filter(function (r) { return S.done[r.item]; }).length;
+    var left = rows.filter(function (r) { return r.priority === '필수' && !S.done[r.item]; }).length;
+    $('s-total').textContent = total;
+    $('s-ess').textContent = ess;
+    $('s-done').textContent = done + '/' + total;
+    $('bar').style.width = (total ? Math.round(done / total * 100) : 0) + '%';
+    var lead = $('lead');
+    lead.textContent = '';
+    var b = el('b', '', left + '개');
+    lead.append('아직 못 챙긴 필수 품목은 ', b, left ? '예요.' : '예요. 필수 품목을 모두 챙겼어요!');
+  }
+
+  function renderBoard() {
+    var rows = allRows();
+    var board = $('board');
+    board.textContent = '';
+
+    var order = [];
+    var by = {};
+    var totalBy = {};
+    var doneBy = {};
+    rows.forEach(function (r) {
+      totalBy[r.category] = (totalBy[r.category] || 0) + 1;
+      if (S.done[r.item]) doneBy[r.category] = (doneBy[r.category] || 0) + 1;
+      if (S.f !== 'all' && r.priority !== S.f) return;
+      if (S.q && (r.item + ' ' + r.note).toLowerCase().indexOf(S.q) < 0) return;
+      if (!by[r.category]) { by[r.category] = []; order.push(r.category); }
+      by[r.category].push(r);
+    });
+
+    if (!order.length) {
+      board.append(el('p', 'empty', '조건에 맞는 품목이 없어요.'));
+      return;
+    }
+
+    order.forEach(function (c) {
+      var card = el('details', 'card');
+      if (!S.closed[c]) card.open = true;
+      card.addEventListener('toggle', function () {
+        if (card.open) delete S.closed[c]; else S.closed[c] = true;
+        save();
+      });
+
+      var sum = el('summary');
+      sum.append(el('span', '', c), el('span', 'cnt', (doneBy[c] || 0) + ' / ' + totalBy[c]));
+      var cbar = el('div', 'cbar');
+      var ci = el('i');
+      ci.style.width = Math.round((doneBy[c] || 0) / totalBy[c] * 100) + '%';
+      cbar.append(ci);
+
+      var ul = el('ul');
+      var head = el('li', 'head');
+      ['', '품목', '필요', '보유'].forEach(function (t) { head.append(el('span', '', t)); });
+      ul.append(head);
+
+      by[c].forEach(function (r) {
+        var li = el('li', S.done[r.item] ? 'done' : '');
+        var cb = el('input');
+        cb.type = 'checkbox';
+        cb.checked = !!S.done[r.item];
+        cb.setAttribute('aria-label', r.item + ' 챙김');
+        cb.addEventListener('change', function () {
+          if (cb.checked) S.done[r.item] = true; else delete S.done[r.item];
+          save();
+          renderSummary();
+          renderBoard();
+        });
+
+        var nm = el('div', 'nm');
+        var line = el('span');
+        line.append(el('i', 'dot' + (r.priority === '필수' ? ' req' : '')), el('span', 'tx', r.item));
+        nm.append(line);
+        if (r.note) nm.append(el('span', 'note', r.note));
+        if (r.extra) {
+          var rm = el('button', 'rm', '삭제');
+          rm.type = 'button';
+          rm.addEventListener('click', function () {
+            S.extra = S.extra.filter(function (x) { return x.item !== r.item; });
+            delete S.done[r.item];
+            delete S.own[r.item];
+            save();
+            renderSummary();
+            renderBoard();
+          });
+          line.append(rm);
+        }
+
+        var q = el('span', 'qty', r.qty + '개');
+        var inp = el('input', 'have');
+        inp.type = 'number';
+        inp.min = '0';
+        inp.inputMode = 'numeric';
+        inp.setAttribute('aria-label', r.item + ' 보유 수량');
+        inp.value = S.own[r.item] === undefined ? '' : S.own[r.item];
+        inp.addEventListener('input', function () {
+          if (inp.value === '') delete S.own[r.item];
+          else S.own[r.item] = String(Math.max(0, Number(inp.value)));
+          save();
+        });
+
+        li.append(cb, nm, q, inp);
+        ul.append(li);
+      });
+
+      var add = el('div', 'addrow');
+      var ni = el('input', 'an');
+      ni.type = 'text';
+      ni.placeholder = '+ 품목 추가';
+      ni.setAttribute('aria-label', c + ' 품목 이름');
+      var qi = el('input', 'aq');
+      qi.type = 'number';
+      qi.min = '1';
+      qi.value = '1';
+      qi.setAttribute('aria-label', c + ' 필요 수량');
+      var ab = el('button', '', '추가');
+      ab.type = 'button';
+      var go = function () {
+        var name = ni.value.trim();
+        if (!name) return;
+        if (allRows().some(function (x) { return x.item === name; })) {
+          ni.value = '';
+          ni.placeholder = '이미 있는 품목이에요';
+          return;
+        }
+        S.extra.push({
+          category: c,
+          item: name,
+          qty: Math.max(1, Number(qi.value) || 1),
+          priority: '선택',
+          note: '직접 추가',
+          extra: true
+        });
+        save();
+        renderSummary();
+        renderBoard();
+      };
+      ab.addEventListener('click', go);
+      ni.addEventListener('keydown', function (e) { if (e.key === 'Enter') go(); });
+      add.append(ni, qi, ab);
+
+      card.append(sum, cbar, ul, add);
+      board.append(card);
+    });
+  }
+
+  document.querySelectorAll('.chips button').forEach(function (b) {
+    b.addEventListener('click', function () {
+      S.f = b.getAttribute('data-f');
+      document.querySelectorAll('.chips button').forEach(function (x) {
+        x.setAttribute('aria-pressed', x === b ? 'true' : 'false');
+      });
+      renderBoard();
+    });
+  });
+  $('q').addEventListener('input', function () {
+    S.q = this.value.trim().toLowerCase();
+    renderBoard();
+  });
+  // 확인창(confirm)은 일부 화면에서 막혀서, 버튼을 두 번 눌러 확인하는 방식으로 처리
+  function twoStep(btn, label, action) {
+    var timer = null;
+    btn.addEventListener('click', function () {
+      if (timer) {
+        clearTimeout(timer);
+        timer = null;
+        btn.textContent = label;
+        btn.style.color = '';
+        action();
+        return;
+      }
+      btn.textContent = '한 번 더 누르면 지워져요';
+      btn.style.color = 'var(--crit)';
+      timer = setTimeout(function () {
+        timer = null;
+        btn.textContent = label;
+        btn.style.color = '';
+      }, 3000);
+    });
+  }
+  twoStep($('reset-done'), '체크 초기화', function () {
+    S.done = {};
+    save();
+    renderSummary();
+    renderBoard();
+  });
+  twoStep($('reset-own'), '보유 수량 초기화', function () {
+    S.own = {};
+    save();
+    renderBoard();
+  });
+
+  // ===== 엑셀(.xlsx) 파일 만들기: 라이브러리 없이 브라우저에서 직접 생성 =====
+  var CRC_TABLE = (function () {
+    var t = new Uint32Array(256);
+    for (var n = 0; n < 256; n++) {
+      var c = n;
+      for (var k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+      t[n] = c >>> 0;
+    }
+    return t;
+  })();
+  function crc32(bytes) {
+    var c = 0xFFFFFFFF;
+    for (var i = 0; i < bytes.length; i++) c = CRC_TABLE[(c ^ bytes[i]) & 255] ^ (c >>> 8);
+    return (c ^ 0xFFFFFFFF) >>> 0;
+  }
+  function zipStore(files) {
+    var enc = new TextEncoder();
+    var parts = [], central = [], offset = 0;
+    files.forEach(function (f) {
+      var name = enc.encode(f.name), crc = crc32(f.data), size = f.data.length;
+      var lh = new DataView(new ArrayBuffer(30));
+      lh.setUint32(0, 0x04034b50, true); lh.setUint16(4, 20, true); lh.setUint16(6, 0x0800, true);
+      lh.setUint16(8, 0, true); lh.setUint16(10, 0, true); lh.setUint16(12, 0x21, true);
+      lh.setUint32(14, crc, true); lh.setUint32(18, size, true); lh.setUint32(22, size, true);
+      lh.setUint16(26, name.length, true); lh.setUint16(28, 0, true);
+      parts.push(new Uint8Array(lh.buffer), name, f.data);
+      var ch = new DataView(new ArrayBuffer(46));
+      ch.setUint32(0, 0x02014b50, true); ch.setUint16(4, 20, true); ch.setUint16(6, 20, true);
+      ch.setUint16(8, 0x0800, true); ch.setUint16(10, 0, true); ch.setUint16(12, 0, true); ch.setUint16(14, 0x21, true);
+      ch.setUint32(16, crc, true); ch.setUint32(20, size, true); ch.setUint32(24, size, true);
+      ch.setUint16(28, name.length, true); ch.setUint32(42, offset, true);
+      central.push(new Uint8Array(ch.buffer), name);
+      offset += 30 + name.length + size;
+    });
+    var cdSize = 0;
+    central.forEach(function (c) { cdSize += c.length; });
+    var end = new DataView(new ArrayBuffer(22));
+    end.setUint32(0, 0x06054b50, true); end.setUint16(8, files.length, true); end.setUint16(10, files.length, true);
+    end.setUint32(12, cdSize, true); end.setUint32(16, offset, true);
+    var all = parts.concat(central, [new Uint8Array(end.buffer)]);
+    var total = 0;
+    all.forEach(function (p) { total += p.length; });
+    var out = new Uint8Array(total), pos = 0;
+    all.forEach(function (p) { out.set(p, pos); pos += p.length; });
+    return out;
+  }
+  function xmlEsc(s) {
+    return String(s).replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '')
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+  function colName(i) {
+    var s = '';
+    for (i = i + 1; i > 0; i = Math.floor((i - 1) / 26)) s = String.fromCharCode(65 + (i - 1) % 26) + s;
+    return s;
+  }
+  // 셀 스타일 번호: 0 기본, 1 머리글(흰 굵은 글씨+초록 배경), 2 큰 제목, 3 굵게
+  function sheetXml(sheet) {
+    var x = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+      '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">';
+    if (sheet.freeze) {
+      x += '<sheetViews><sheetView workbookViewId="0"><pane ySplit="' + sheet.freeze +
+        '" topLeftCell="A' + (sheet.freeze + 1) + '" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>';
+    }
+    if (sheet.cols) {
+      x += '<cols>' + sheet.cols.map(function (w, i) {
+        return '<col min="' + (i + 1) + '" max="' + (i + 1) + '" width="' + w + '" customWidth="1"/>';
+      }).join('') + '</cols>';
+    }
+    x += '<sheetData>';
+    sheet.rows.forEach(function (row, ri) {
+      x += '<row r="' + (ri + 1) + '">';
+      row.forEach(function (cell, ci) {
+        if (cell === null || cell === undefined || cell === '') return;
+        var v = cell, s = 0;
+        if (typeof cell === 'object') { v = cell.v; s = cell.s || 0; }
+        if (v === null || v === undefined || v === '') return;
+        var ref = colName(ci) + (ri + 1);
+        if (typeof v === 'number') x += '<c r="' + ref + '" s="' + s + '"><v>' + v + '</v></c>';
+        else x += '<c r="' + ref + '" s="' + s + '" t="inlineStr"><is><t xml:space="preserve">' + xmlEsc(v) + '</t></is></c>';
+      });
+      x += '</row>';
+    });
+    return x + '</sheetData></worksheet>';
+  }
+  function makeXlsx(sheets) {
+    var enc = new TextEncoder();
+    var head = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>';
+    var n = sheets.length;
+    var ct = head + '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">' +
+      '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>' +
+      '<Default Extension="xml" ContentType="application/xml"/>' +
+      '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>' +
+      '<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>';
+    for (var i = 1; i <= n; i++) ct += '<Override PartName="/xl/worksheets/sheet' + i + '.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>';
+    ct += '</Types>';
+    var rels = head + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+      '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>';
+    var wb = head + '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>' +
+      sheets.map(function (s, k) { return '<sheet name="' + xmlEsc(s.name) + '" sheetId="' + (k + 1) + '" r:id="rId' + (k + 1) + '"/>'; }).join('') + '</sheets></workbook>';
+    var wbRels = head + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+      sheets.map(function (s, k) { return '<Relationship Id="rId' + (k + 1) + '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet' + (k + 1) + '.xml"/>'; }).join('') +
+      '<Relationship Id="rId' + (n + 1) + '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>';
+    var styles = head + '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
+      '<fonts count="4"><font><sz val="11"/><name val="Malgun Gothic"/></font>' +
+      '<font><b/><sz val="11"/><name val="Malgun Gothic"/></font>' +
+      '<font><b/><sz val="16"/><name val="Malgun Gothic"/></font>' +
+      '<font><b/><sz val="11"/><color rgb="FFFFFFFF"/><name val="Malgun Gothic"/></font></fonts>' +
+      '<fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill>' +
+      '<fill><patternFill patternType="solid"><fgColor rgb="FF2F6F4F"/><bgColor indexed="64"/></patternFill></fill></fills>' +
+      '<borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders>' +
+      '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>' +
+      '<cellXfs count="4"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>' +
+      '<xf numFmtId="0" fontId="3" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1"/>' +
+      '<xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0" applyFont="1"/>' +
+      '<xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/></cellXfs>' +
+      '<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>';
+    var files = [
+      { name: '[Content_Types].xml', data: enc.encode(ct) },
+      { name: '_rels/.rels', data: enc.encode(rels) },
+      { name: 'xl/workbook.xml', data: enc.encode(wb) },
+      { name: 'xl/_rels/workbook.xml.rels', data: enc.encode(wbRels) },
+      { name: 'xl/styles.xml', data: enc.encode(styles) }
+    ];
+    sheets.forEach(function (s, k) { files.push({ name: 'xl/worksheets/sheet' + (k + 1) + '.xml', data: enc.encode(sheetXml(s)) }); });
+    return zipStore(files);
+  }
+
+  // ===== 집계 → 엑셀 보고서 시트 구성 =====
+  function reportSheets(rows, state, dateStr) {
+    var H = function (t) { return { v: t, s: 1 }; };
+    var B = function (t) { return { v: t, s: 3 }; };
+    var total = rows.length;
+    var ess = rows.filter(function (r) { return r.priority === '필수'; }).length;
+    var done = rows.filter(function (r) { return state.done[r.item]; }).length;
+    var left = rows.filter(function (r) { return r.priority === '필수' && !state.done[r.item]; }).length;
+    var pct = function (a, b) { return b ? Math.round(a / b * 100) + '%' : '0%'; };
+
+    var cats = [], agg = {};
+    rows.forEach(function (r) {
+      if (!agg[r.category]) { agg[r.category] = { total: 0, ess: 0, done: 0, short: 0 }; cats.push(r.category); }
+      var a = agg[r.category];
+      a.total++;
+      if (r.priority === '필수') a.ess++;
+      if (state.done[r.item]) a.done++;
+      var own = state.own[r.item];
+      if (own !== undefined && own !== '' && Number(own) < Number(r.qty)) a.short++;
+    });
+    var shortTotal = cats.reduce(function (s, c) { return s + agg[c].short; }, 0);
+
+    var summary = [
+      [{ v: '캠핑 품목 보고서', s: 2 }],
+      [B('작성일'), dateStr],
+      [],
+      [B('전체 품목'), total],
+      [B('필수 품목'), ess],
+      [B('챙긴 품목'), done],
+      [B('진행률'), pct(done, total)],
+      [B('아직 못 챙긴 필수 품목'), left],
+      [B('보유 수량이 모자란 품목'), shortTotal],
+      [],
+      [H('카테고리'), H('전체'), H('필수'), H('챙김'), H('진행률'), H('수량 부족')]
+    ];
+    cats.forEach(function (c) {
+      var a = agg[c];
+      summary.push([c, a.total, a.ess, a.done, pct(a.done, a.total), a.short]);
+    });
+    summary.push([B('합계'), { v: total, s: 3 }, { v: ess, s: 3 }, { v: done, s: 3 }, B(pct(done, total)), { v: shortTotal, s: 3 }]);
+
+    var detail = [[H('카테고리'), H('품목'), H('우선순위'), H('필요 수량'), H('보유 수량'), H('부족 수량'), H('챙김'), H('비고')]];
+    rows.forEach(function (r) {
+      var own = state.own[r.item];
+      var has = own !== undefined && own !== '';
+      var need = Number(r.qty);
+      detail.push([
+        r.category, r.item, r.priority, need,
+        has ? Number(own) : '',
+        has ? Math.max(0, need - Number(own)) : '',
+        state.done[r.item] ? '완료' : '',
+        r.note || ''
+      ]);
+    });
+
+    return [
+      { name: '요약', cols: [26, 10, 10, 10, 10, 12], rows: summary },
+      { name: '품목 상세', cols: [14, 26, 10, 11, 11, 11, 8, 26], rows: detail, freeze: 1 }
+    ];
+  }
+
+  var downloads = [];
+  function fmtSize(n) { return n < 1024 ? n + ' B' : (n / 1024).toFixed(1) + ' KB'; }
+  function cellText(c) { var v = (c && typeof c === 'object') ? c.v : c; return v === undefined || v === null ? '' : String(v); }
+  function renderDownloads() {
+    var ul = $('dl-list');
+    ul.textContent = '';
+    downloads.forEach(function (d, idx) {
+      var li = el('li');
+      li.append(el('span', 'fn', (idx === 0 ? '✔ ' : '') + d.name), el('span', 'meta', d.time + ' · ' + fmtSize(d.size)));
+      var a = el('a', '', '다시 내려받기');
+      a.href = d.url;
+      a.download = d.name;
+      li.append(a);
+      ul.append(li);
+    });
+  }
+  function renderPreview(sheet) {
+    var box = $('dl-preview');
+    box.textContent = '';
+    var tbl = el('table');
+    $('pv-title').textContent = '미리보기 · ' + sheet.name + ' 시트';
+    var tb = el('tbody');
+    var hdr = false;
+    sheet.rows.forEach(function (row) {
+      if (!row.length) return;
+      var isHead = row.some(function (c) { return c && typeof c === 'object' && c.s === 1; });
+      var tr = el('tr');
+      row.forEach(function (c) { tr.append(el(isHead ? 'th' : 'td', '', cellText(c))); });
+      tb.append(tr);
+    });
+    tbl.append(tb);
+    box.append(tbl);
+    box.hidden = false;
+    $('pv-head').hidden = false;
+  }
+  $('pv-clear').addEventListener('click', function () {
+    downloads.forEach(function (d) { URL.revokeObjectURL(d.url); });
+    downloads = [];
+    renderDownloads();
+    $('dl-preview').textContent = '';
+    $('dl-preview').hidden = true;
+    $('pv-head').hidden = true;
+    $('report-status').textContent = '';
+  });
+  $('dl-report').addEventListener('click', function () {
+    var st = $('report-status');
+    try {
+      var d = new Date();
+      var pad = function (n) { return (n < 10 ? '0' : '') + n; };
+      var stamp = d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate()) + '_' + pad(d.getHours()) + pad(d.getMinutes()) + pad(d.getSeconds());
+      var sheets = reportSheets(allRows(), S, d.toLocaleDateString('ko-KR'));
+      var bytes = makeXlsx(sheets);
+      var blob = new Blob([bytes], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      var url = URL.createObjectURL(blob);
+      var name = 'camping_report_' + stamp + '.xlsx';
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = name;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      downloads.unshift({ name: name, url: url, size: bytes.length, time: d.toLocaleString('ko-KR') });
+      st.textContent = '내려받기를 시작했어요. 파일은 기기의 다운로드 폴더에 저장돼요.';
+      renderDownloads();
+      renderPreview(sheets[0]);
+    } catch (e) {
+      st.textContent = '엑셀 보고서를 만들지 못했어요. 다시 시도해 주세요.';
+    }
+  });
+
+  renderSummary();
+  renderBoard();
+})();
+  </script>
+</body>
+</html>
